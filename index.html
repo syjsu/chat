@@ -1,50 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <style>
-        body {
-            margin: 0px;
-            padding: 0px;
-            overflow: hidden;
-        }
-
-        #app {
-            position: absolute;
-            left: 50%;
-            top: 40%;
-            transform: translate(-50%, -50%);
-            background-color: rgb(100, 100, 100);
-            width: 330px;
-            height: 400px;
-        }
-    </style>
     <meta charset="UTF-8">
-    <meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" name="viewport" />
-    <title>ChatGPT(由GPT-3开放接口实现)</title>
-    <script src="./js/axios.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>ChatGPT</title>
+    <link href="http://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.css" rel="stylesheet">
+    <script src="http://cdn.bootcdn.net/ajax/libs/axios/1.3.4/axios.js"></script>
 </head>
 
-<body background="./img/background.jpg" style="background-size: cover;">
-    <div id="app">
+<body style="background-color:gray;">
+    <div id="app" class="container">
         <div style="display: flex;justify-content: center;align-items: center;color:#eee;">
             ChatGPT持续型聊天AI
         </div>
         <div style="display: flex;justify-content: center;align-items: center;">
-            <textarea id="res" cols="100" rows="20"></textarea>
+            <textarea class="form-control" id="res" cols="100" rows="20"></textarea>
         </div>
         <div style="color:#eee;">
             请输入需要查询的内容：<br />(使用/help指令获取更多帮助)
         </div>
         <div>
         </div>
-        <div style="display: flex;justify-content: left;align-items: center;margin: 20">
-            <textarea id="inputbox" type="text" v-model="info" cols="100" rows="2" style="margin:15"></textarea>
+        <div class="form-group">
+            <div style="display: flex;justify-content: left;align-items: center;margin: 20">
+                <textarea class="form-control" id="inputbox" type="text" v-model="info" cols="100" rows="3" style="margin:15" onkeydown="enterask(event)"></textarea>
+            </div>
+            <br/>
+            <div style="display: flex;justify-content: center;align-items: center;margin: 20;">
+                <button type="button" class="btn btn-default btn-lg btn-block" onclick="ask()">发送文本</button>
+            </div>
+            
         </div>
-        <div style="display: flex;justify-content: center;align-items: center;margin: 20;">
-            <button onclick="ask()" style="width: 100%;">发送<br />文本</button>
-        </div>
-        <br />
     </div>
 
     <script>
@@ -60,8 +46,13 @@
         const textarea = window.document.getElementById("res");
         const inputbox = window.document.getElementById("inputbox");
         var histories = "";
-        addText("欢迎使用ChatGPT智能AI客服,本项目基于GPT-3接口开发,能够实现与ChatGPT类似的持续性对话功能,AI将记忆并结合语境对话。");
-        if (getCookie("apikey") != undefined && getCookie("apikey") != "") {
+        window.apikey = window.location.search.substr(1);
+        addText("欢迎使用ChatGPT智能AI客服,本项目基于GPT-3.5接口开发,能够实现与ChatGPT类似的持续性对话功能,AI将记忆并结合语境对话。");
+        if(window.apikey != ""){
+            console.log(window.apikey);
+            setCookie("apikey", window.apikey);
+        }
+        else if (getCookie("apikey") != undefined && getCookie("apikey") != "") {
             window.apikey = getCookie("apikey");
         } else {
             window.apikey = prompt("请在输入框内输入并提交您从官方网站获取的apikey:");
@@ -90,6 +81,9 @@
         }
         if (getCookie("csize") != undefined) {
             window.csize = Number(getCookie("csize"));
+        }
+        function enterask(event){
+            if (event.keyCode == 13){ask();inputbox.value = "";}
         }
         function ask() {
             let intputtext = inputbox.value;
@@ -162,16 +156,15 @@
             addText("我说：\n\n" + intputtext);
             textarea.value += '\n正在请求数据......';
             textarea.scrollTop = textarea.scrollHeight;
-            axios.post('https://api.openai.com/v1/completions', {
-                prompt: question, max_tokens: window.mt, model: "text-davinci-003", temperature: window.tpr,
-                top_p: window.tp, frequency_penalty: window.fp, presence_penalty: window.pp
+            axios.post('https://api.openai.com/v1/chat/completions', {
+                model: "gpt-3.5-turbo", messages:[{role: 'user',content: question}]
             }, {
                 headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + window.apikey }
             }).then(response => {
                 let arr = textarea.value.split("\n");
                 arr = arr.slice(0, arr.length - 1);
                 textarea.value = arr.join("\n");
-                let result = response.data.choices[0].text;
+                let result = response.data.choices[0].message.content;
                 histories += "\n" + result;
                 let result1 = result;
                 addText("AI说:\n" + result1.replace('A:', '').replace('A：', ''));
